@@ -1,6 +1,7 @@
 # 동일 폴더상(pracapp)의 urls.py의 path('', view.함수이름)의 함수 이름으로 사용자가 사용한 함수를 알려준다.  
 from ast import Return
 from asyncio.proactor_events import constants
+import pstats
 import re
 from django.shortcuts import render, HttpResponse, redirect # redirect 사용하기 위해 import
 import random # 동적인 웹 어플리케이션을 만들기 위한 random 모듈 import
@@ -30,6 +31,7 @@ def HTMLTemplate(articleTag, id=None): # HTML코드를 재활용하기 위해 �
                     <input type="submit" value="delete">            
                 </form>
             </li>
+            <li><a href="/update/{id}">update</a></li>
         '''
 
     ol = ''
@@ -92,16 +94,44 @@ def create(request):
         nextId = nextId + 1 # id의 값을 증가시켜줘야한다.
         return redirect(url) # redirect 함수는 url 을 받는다.
 
+@csrf_exempt
+def update(request, id): # update의 가장 큰 골자는 'POST' 메서드로 들어온 데이터를 화면에 뿌려줄때 input과 textarea에 이전에 있던 글을 어떻게 보여줄것인가? 에 대한 로직을 생각하는 것에 있다.
+    global topics
+    if request.method == "GET":
+        for topic in topics: 
+            if topic['id'] == int(id):
+                selectedTopic = { # topic['id] 로 가지고온 정보를  title, body 키값으로 아래 아티클에 넣어줌으로써 수정전에 있던 데이터를 input, textarea에 뿌려준다.
+                    "title" : topic['title'],
+                    "body" : topic['body']
+                }
+        article = f''' 
+            <form action="/update/{id}/" method="POST"> 
+                <p><input type="test" name="title" placeholder="title" value={selectedTopic["title"]}></p>
+                <p><textarea name="body" placeholder="body">{selectedTopic["body"]}</textarea></p>
+                <p><input type="submit"></p>
+            </form>
+        '''
+        # textarea 에는 value속성이 아니라 컨텐츠박스 안에 넣어 줘야한다.
+        return HttpResponse(HTMLTemplate(article, id)) # 수정할 input, textarea 에 값이 들어가 있는 것을 볼수 있다.
+    elif request.method == "POST": # 이후 수정한 값을 저장할때는 POST 메서드로 진행된다.
+        title = request.POST['title']
+        body = request.POST['body'] #수정된 title, body를 변수에 받아온다.
+        for topic in topics:  # 전역변수인 topics 의 내용을 순회하면서 topic에 정보를 담다가
+            if topic['id'] == int(id): # topic['id'] 값이 함수 초반에 같이들어온 id와 같다면
+                topic['title'] = title
+                topic['body'] = body # topic 안에 있는 데이터를 수정된 title, body로 덮어 씌운다. 
+        return redirect(f'/read/{id}') # 그후 다시 상세페이지로 redirect! 수정된 화면이 보이게 된다. 
 
 @csrf_exempt
-def delete(request):
+def delete(request): # delete 기능의 가장 큰 골자는 'POST' 메소드로 기존에 있던 값을 없어지게하고 그 없어진 내용을 다시 화면에 뿌려주는 것에 있다.
     global topics
     if request.method == "POST":
         id = request.POST['id']
-        print(request.POST)
-        newTopics =[]
+        newTopics =[] 
         for topic in topics:
             if topic['id'] != int(id):
-                newTopics.append(topic)
-        topics = newTopics
-        return redirect('/')
+                newTopics.append(topic) # for문을 순회하면서 id가 같지 않은 것만 비어있는 newTopics list에 들어가게 된다.
+        topics = newTopics # 수정된 newTopics list를 원래 topics에 다시 덮어 씌우고
+        return redirect('/') # 홈으로 redirect!
+
+    

@@ -7,5 +7,6 @@ urlpatterns = [
     path('', views.index), # 해당 app폴더의 views.py에 있는 함수를 찾는다. views.함수이름 으로 사용한다.
     path('create/', views.create),
     path('read/<id>/', views.read),
+    path('update/<id>/', views.update),
     path('delete/', views.delete),
 ] 
